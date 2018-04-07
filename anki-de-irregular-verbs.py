@@ -184,7 +184,7 @@ for word in words:
 	# there might be multiple entries of verb form lists, tokenize them
 	forms_lists = re.findall(r'&lt;(?:<b>[^<]+</b>(?:,\s*)?){3,4}&gt;', forms_section)
 
-	if len(forms_lists) < 2:
+	if len(forms_lists) == 0:
 		warning = True
 	else:
 		if len(forms_lists) == 2 and forms_lists[0] != forms_lists[1]:
