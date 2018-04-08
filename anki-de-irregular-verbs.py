@@ -1,10 +1,15 @@
 # !/usr/bin/env python
 # coding=utf-8
 
-#
-# Helps generating a .csv Anki flashcard import file of the forms of [some] German irregular verbs
-# (specified below), plus a translation into lang (ru by default).
-#
+'''
+
+ Helps generating a .csv Anki flashcard import file of the forms of [some] German irregular verbs
+ (specified below), plus a translation into lang (ru by default).
+
+ This script is merely an example of traversing html pages using python's BeautifulSoup library.
+ The percentage of errors and typos of thefreedictionary.com is quite high, hand-review is required anyway.
+
+'''
 
 import urllib2
 import time
@@ -13,8 +18,8 @@ import re
 from bs4 import BeautifulSoup
 
 words = [ \
- u'dürften', \
  u'denken', \
+ u'bringen', \
  u'haben', \
  u'kennen', \
  u'nennen', \
@@ -25,7 +30,6 @@ words = [ \
  u'wenden', \
  u'bitten', \
  u'essen', \
- u'bringen' , \
  u'fressen', \
  u'geben', \
  u'geschehen', \
@@ -148,6 +152,7 @@ words = [ \
  u'wachsen', \
  u'waschen', \
  u'werden', \
+ u'dürften', \
  u'müssen', \
  u'wissen'
 ]
@@ -160,8 +165,6 @@ translations_separator = u', '
 warnings = []
 
 for word in words:
-	warning = False
-
 	# look less like a robot (introduce 0..2 sec random page reload delay), in order to not to get banned by the web server
 	time.sleep(4 * random.random())
 
@@ -184,7 +187,9 @@ for word in words:
 	# there might be multiple entries of verb form lists, tokenize them
 	forms_lists = re.findall(r'&lt;(?:<b>[^<]+</b>(?:,\s*)?){3,4}&gt;', forms_section)
 
-	if len(forms_lists) == 0:
+	warning = False
+
+	if len(forms_lists) == 0 or len(forms_lists) > 2:
 		warning = True
 	else:
 		if len(forms_lists) == 2 and forms_lists[0] != forms_lists[1]:
@@ -203,18 +208,20 @@ for word in words:
 
 	if warning:
 		forms_lists = [unicode(' ??? '.join(re.findall('<b>(.*?)</b>', s)), "utf-8") for s in forms_lists]
-		forms_lists = [ ' --- ' ] + forms_lists + [ ' --- ' ]
+		forms_lists = [ u' --- ' , u' --- '.join([''] + forms_lists + ['']) ]
 
 	forms = [ word ] + forms_lists
+	forms = [ s.strip() for s in forms ] # remove leading/trailing whitespace
 
 	t_list = soup.select('#translbody > * > span[lang=%s] > a' % lang)
 	translations = [u''.join(elem.get_text()) for elem in t_list]
 
 	if (len(translations) < 1):
-		warning = True
-		translations = [ u'???' ]
+		translations = [ u' --- ??? --- ' ]
 
-	# Indikativ Praesens forms
+	translations = [ translations_separator.join(translations) ]
+
+	# Indikativ Präsens forms
 
 	# ipf_list = soup.select('#VerbTableN1_1 > * > td')
 	ip_forms = [] # [u''.join(ipf.get_text()) for ipf in ipf_list ]
@@ -227,19 +234,6 @@ for word in words:
 
 	# digest
 
-	line = csv_separator.join(forms + [ translations_separator.join(translations) ] + ip_forms + [ '' ])
+	line = csv_separator.join(forms + translations) # + ip_forms)
 
-	if warning:
-		warnings.append(line)
-		print ''
-	else:
-		print line
-
-if len(warnings) > 0:
-	print ''
-	print ' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-	print ' ! PLEASE CHECK AND ADD MANUALLY: !'
-	print ' !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-	print ''
-	for line in warnings:
-		print line
+	print line
